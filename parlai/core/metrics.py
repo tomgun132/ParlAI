@@ -187,9 +187,13 @@ def _rouge(guess, answers, rouge_n, rouge_L):
         return None, None, None
     scores_rouge_n = []
     for idx in range(1, rouge_n):
-        scores_rouge_n.append(max(score['rouge-{}'.format(idx)]['r'] for score in scores))
+        scores_rouge_n.append(
+            max(score['rouge-{}'.format(idx)]['r'] for score in scores)
+        )
     scores_rouge_n = scores_rouge_n if rouge_n > 0 else None
-    scores_rouge_L = max([score['rouge-l']['r'] for score in scores]) if rouge_L else None
+    scores_rouge_L = (
+        max([score['rouge-l']['r'] for score in scores]) if rouge_L else None
+    )
     return scores_rouge_n, scores_rouge_L
 
 
@@ -343,7 +347,9 @@ class Metrics(object):
             if 'bleu' in self.metrics_list:
                 bleu = _bleu(prediction, labels)
             if self.compute_rouge_l or self.compute_rouge_n > 0:
-                rougen, rougel = _rouge(prediction, labels, self.compute_rouge_n, self.compute_rouge_l)
+                rougen, rougel = _rouge(
+                    prediction, labels, self.compute_rouge_n, self.compute_rouge_l
+                )
 
             with self._lock():
                 if 'f1' in self.metrics:

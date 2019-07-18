@@ -200,7 +200,7 @@ def setup_args(parser=None) -> ParlaiParser:
         help='list of metrics to show/compute, e.g. all, default,'
         'or give a list split by , like '
         'ppl, f1, accuracy, hits@1, rouge-l, rouge-1, rouge-2, bleu'
-        'the rouge metrics will be computed up to the max n you give'
+        'the rouge metrics will be computed up to the max n you give',
     )
     TensorboardLogger.add_cmdline_args(parser)
     parser = setup_dict_args(parser)
