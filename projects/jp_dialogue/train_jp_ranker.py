@@ -101,3 +101,4 @@ if __name__ == '__main__':
     # --lr-scheduler-decay 0.4 --validation-metric accuracy --validation-metric-mode max 
     # --optimizer adamw --bert-aggregation mean --type-optimization top4_layers --validation-every-n-secs -1 
     # --num-epochs 100.0 --context-model poly --person-tokens False --history-size 3
+
