@@ -1384,8 +1384,8 @@ class ParlAIDialogTeacher(FixedDialogTeacher):
         self.episodes = []
         self.num_exs = 0
         eps = []
-        with open(path, newline='\n') as read:
-            for line_no, line in enumerate(read, 1):
+        with open(path, encoding='utf-8', newline='\n') as read:
+            for line in read:
                 msg = str_to_msg(line.rstrip('\n'))
                 if msg and 'eval_labels' in msg:
                     raise ValueError(
