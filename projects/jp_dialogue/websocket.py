@@ -35,7 +35,6 @@ class ParlAIChatbot(WebSocketHandler):
                 resp_cands = model_res['text_candidates']
                 # edited_resp_cands = self.block_repeat(resp_cands, self.history)
                 resp = ''.join(resp_cands[0].replace('▁','').split())
-                print("response: ", resp)
                 output = {"response": resp, 'status': True}
                 SHARED['conv_history']['response'].append(resp)
                 SHARED['conv_history']['candidates'].append(resp_cands)
