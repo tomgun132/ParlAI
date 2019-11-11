@@ -24,8 +24,12 @@ class ParlAIChatbot(WebSocketHandler):
                 text = json['text'].strip()
                 print("input message: ", text)
                 SHARED['conv_history']['input'].append(text)
-                text = SHARED['tokenizer'].parse(text)
-                reply = {'episode_done': False, 'text': text}
+                parsed_text = SHARED['tokenizer'].parse(text)
+                reply = {'episode_done': False, 'text': parsed_text}
+                if 'nlu' in SHARED:
+                    parsed = SHARED['nlu'].parse(text)
+                    topic = parsed['intent']['name']
+                    reply['topic'] = topic
                 SHARED['agent'].observe(reply)
                 model_res = SHARED['agent'].act()
                 resp_cands = model_res['text_candidates']
@@ -51,6 +55,12 @@ def setup_interactive(shared):
         default=3,
         help='number of conversation history to remember'
     )
+    parser.add_argument(
+        '--with-topic',
+        type=bool,
+        default=False,
+        help='number of conversation history to remember'
+    )
     SHARED['opt'] = parser.parse_args(print_args=False)
 
     SHARED['opt']['task'] = 'parlai.agents.local_human.local_human:LocalHumanAgent'
@@ -60,6 +70,11 @@ def setup_interactive(shared):
     SHARED['agent'] = agent
     SHARED['world'] = create_task(SHARED.get('opt'), SHARED['agent'])
     SHARED['tokenizer'] = FullTokenizer(SHARED['opt']['datapath'] + '/models/')
+    if SHARED['opt']['with_topic']:
+        if 'json' not in SHARED['opt']['fixed_candidates_path']:
+            raise AttributeError("With topic option must use topical candidates file")
+        from rasa.nlu.model import Interpreter
+        SHARED['nlu'] = Interpreter.load(SHARED['opt']['datapath'] + '/rachel/topic_model')
     SHARED['conv_history'] = {'input': [], 'response': [], 'candidates': [], 'candidates_scores': []}
     # show args after loading model
     parser.opt = agent.opt
