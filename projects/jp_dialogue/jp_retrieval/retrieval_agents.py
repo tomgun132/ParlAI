@@ -832,9 +832,9 @@ class BertJPRanker(BiEncoderRankerAgent):
 
         if any('topic' in ex for ex in exs):
             topics = [ex.get('topic', None) for ex in exs]
+            new_batch = namedtuple('Batch', tuple(batch.keys()) + tuple(['topics']))
+            batch = new_batch(topics=topics, **dict(batch))
 
-        new_batch = namedtuple('Batch', tuple(batch.keys()) + tuple(['topics']))
-        batch = new_batch(topics=topics, **dict(batch))
         return batch
 
     def eval_step(self, batch):
