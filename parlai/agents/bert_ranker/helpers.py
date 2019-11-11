@@ -13,8 +13,10 @@ from parlai.utils.fp16 import fp16_optimizer_wrapper
 from parlai.utils.torch import neginf
 
 try:
-    from pytorch_pretrained_bert.modeling import BertLayer, BertConfig
-    from pytorch_pretrained_bert import BertModel  # NOQA
+    # from pytorch_pretrained_bert.modeling import BertLayer, BertConfig
+    # from pytorch_pretrained_bert import BertModel  # NOQA
+    from transformers.modeling_bert import BertLayer, BertConfig
+    from transformers import BertModel
 except ImportError:
     raise ImportError(
         'This model requires that huggingface\'s transformers is '
@@ -23,12 +25,19 @@ except ImportError:
 
 
 import torch
+<<<<<<< HEAD
 from torch.optim.optimizer import Optimizer
+=======
+from torch.optim import Optimizer, AdamW
+from torch.optim.optimizer import required
+>>>>>>> edited bert ranker to work on japanese bert
 from torch.nn.utils import clip_grad_norm_
 
 
-MODEL_PATH = 'bert-base-uncased.tar.gz'
-VOCAB_PATH = 'bert-base-uncased-vocab.txt'
+# MODEL_PATH = 'bert-base-uncased.tar.gz'
+MODEL_PATH = 'bert-wiki-ja'
+# VOCAB_PATH = 'bert-base-uncased-vocab.txt'
+VOCAB_PATH = 'bert-wiki-ja/vocab.txt'
 
 
 def add_common_args(parser):
@@ -130,12 +139,22 @@ class BertWrapper(torch.nn.Module):
         self.bert_model = bert_model
 
     def forward(self, token_ids, segment_ids, attention_mask):
+<<<<<<< HEAD
         """
         Forward pass.
         """
         output_bert, output_pooler = self.bert_model(
+=======
+        """Forward pass."""
+        outputs = self.bert_model(
+>>>>>>> edited bert ranker to work on japanese bert
             token_ids, segment_ids, attention_mask
         )
+        _, output_pooler = outputs[:2]
+        try:
+            output_bert = outputs[2]
+        except IndexError:
+            raise IndexError("output_hidden_states in bert config must be true")
         # output_bert is a list of 12 (for bert base) layers.
         layer_of_interest = output_bert[self.layer_pulled]
         dtype = next(self.parameters()).dtype
@@ -231,7 +250,7 @@ def get_bert_optimizer(models, type_optimization, learning_rate, fp16=False):
         {'params': parameters_with_decay, 'weight_decay': 0.01},
         {'params': parameters_without_decay, 'weight_decay': 0.0},
     ]
-    optimizer = AdamWithDecay(optimizer_grouped_parameters, lr=learning_rate)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate)
 
     if fp16:
         optimizer = fp16_optimizer_wrapper(optimizer)

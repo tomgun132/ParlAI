@@ -6,7 +6,7 @@ import numpy as np
 from nltk import ngrams
 from collections import defaultdict, deque
 from parlai.core.dict import DictionaryAgent
-from parlai.core.utils import AttrDict
+from parlai.utils.misc import AttrDict
 
 def escape(s):
     r"""
