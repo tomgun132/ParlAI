@@ -94,3 +94,10 @@ if __name__ == '__main__':
     # --eval-batchsize 10 --embeddings-scale True --variant xlm --learn-positional-embeddings True --ffn-size 2048
     # --attention-dropout 0.1 --relu-dropout 0.0 --dropout 0.1 --embedding-size 320 --activation gelu
     # --validation-every-n-secs -1 --max_train_time 6900 --train-folder rachel
+
+    # python train_jp_ranker.py -mf /home/ubuntu/workspace/ParlAI/data/models/rachel/bibert_poly_ranker_v1.1 
+    # -m projects.jp_dialogue.jp_retrieval.retrieval_agents:BertJPRanker -bs 16 --eval-batchsize 16 
+    # --train-folder rachel --warmup-updates 100 --lr-scheduler-patience 0 --lr-scheduler-patience 0 
+    # --lr-scheduler-decay 0.4 --validation-metric accuracy --validation-metric-mode max 
+    # --optimizer adamw --bert-aggregation mean --type-optimization top4_layers --validation-every-n-secs -1 
+    # --num-epochs 100.0 --context-model poly --person-tokens False --history-size 3
