@@ -35,6 +35,7 @@ class ParlAIChatbot(WebSocketHandler):
                 resp_cands = model_res['text_candidates']
                 # edited_resp_cands = self.block_repeat(resp_cands, self.history)
                 resp = ''.join(resp_cands[0].replace('▁','').split())
+                print("response: ", resp)
                 output = {"response": resp, 'status': True}
                 SHARED['conv_history']['response'].append(resp)
                 SHARED['conv_history']['candidates'].append(resp_cands)
@@ -63,10 +64,6 @@ def setup_interactive(shared):
     SHARED['opt'] = parser.parse_args(print_args=False)
 
     SHARED['opt']['task'] = 'parlai.agents.local_human.local_human:LocalHumanAgent'
-    SHARED['opt']['model_file'] = '/installation/~/ParlAI/data/models/rachel/biber_poly_ranker'
-    SHARED['opt']['model'] = 'projects.jp_dialogue.jp_retrieval.retrieval_agents:BertJPRanker'
-    SHARED['opt']['context_model'] = 'poly'
-
 
     # Create model and assign it to the specified task
     agent = create_agent(SHARED.get('opt'), requireModelExists=True)
