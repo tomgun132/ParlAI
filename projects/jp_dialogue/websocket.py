@@ -22,6 +22,7 @@ class ParlAIChatbot(WebSocketHandler):
             json = json_decode(message)
             if json['speaker'] == 'user':
                 text = json['text'].strip()
+                print("input message: ", text)
                 SHARED['conv_history']['input'].append(text)
                 text = SHARED['tokenizer'].parse(text)
                 reply = {'episode_done': False, 'text': text}
@@ -30,6 +31,7 @@ class ParlAIChatbot(WebSocketHandler):
                 resp_cands = model_res['text_candidates']
                 # edited_resp_cands = self.block_repeat(resp_cands, self.history)
                 resp = ''.join(resp_cands[0].replace('▁','').split())
+                print("response: ", resp)
                 output = {"response": resp, 'status': True}
                 SHARED['conv_history']['response'].append(resp)
                 SHARED['conv_history']['candidates'].append(resp_cands)
@@ -52,10 +54,6 @@ def setup_interactive(shared):
     SHARED['opt'] = parser.parse_args(print_args=False)
 
     SHARED['opt']['task'] = 'parlai.agents.local_human.local_human:LocalHumanAgent'
-    SHARED['opt']['model_file'] = '/installation/~/ParlAI/data/models/rachel/biber_poly_ranker'
-    SHARED['opt']['model'] = 'projects.jp_dialogue.jp_retrieval.retrieval_agents:BertJPRanker'
-    SHARED['opt']['context_model'] = 'poly'
-
 
     # Create model and assign it to the specified task
     agent = create_agent(SHARED.get('opt'), requireModelExists=True)
@@ -90,8 +88,9 @@ def main():
             writer = csv.writer(f, delimiter=',')
             writer.writerow(['input', 'response', 'candidates'])
             for i, inp in enumerate(SHARED['conv_history']['input']):
-                cands = ["{}({:.4f})".format(cand, score) for
-                    cand, score in zip(SHARED['conv_history']['candidates'][i], SHARED['conv_history']['candidates_scores'][i])]
+                # cands = ["{}({:.4f})".format(cand, score) for
+                # cand, score in zip(SHARED['conv_history']['candidates'][i], SHARED['conv_history']['candidates_scores'][i])]
+                cands = [cand for cand in SHARED['conv_history']['candidates'][i]]
                 cands = ";".join(cands)
                 resp = SHARED['conv_history']['response'][i]
                 writer.writerow([inp, resp, cands])

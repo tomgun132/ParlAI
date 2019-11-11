@@ -4,14 +4,15 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 from parlai.core.dict import DictionaryAgent
-from parlai.zoo.bert.build import download
+# from parlai.zoo.bert.build import download
 
 try:
-    from pytorch_pretrained_bert import BertTokenizer
+    # from pytorch_pretrained_bert import BertTokenizer
+    from transformers import BertTokenizer
 except ImportError:
     raise ImportError(
-        'BERT rankers needs pytorch-pretrained-BERT installed. \n '
-        'pip install pytorch-pretrained-bert'
+        "BERT rankers needs HuggingFace's Transformers module installed. \n "
+        'pip install transformers'
     )
 
 from .helpers import VOCAB_PATH
@@ -27,9 +28,9 @@ class BertDictionaryAgent(DictionaryAgent):
     def __init__(self, opt):
         super().__init__(opt)
         # initialize from vocab path
-        download(opt['datapath'])
+        # download(opt['datapath'])
         vocab_path = os.path.join(opt['datapath'], 'models', 'bert_models', VOCAB_PATH)
-        self.tokenizer = BertTokenizer.from_pretrained(vocab_path)
+        self.tokenizer = BertTokenizer.from_pretrained(vocab_path, unk_token='<unk>',tokenize_chinese_chars=False)
 
         self.start_token = '[CLS]'
         self.end_token = '[SEP]'
