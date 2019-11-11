@@ -929,9 +929,9 @@ class BertJPRanker(BiEncoderRankerAgent):
         if output.text_candidates is not None:
             for i, cands in zip(valid_inds, output.text_candidates):
                 batch_reply[i]['text_candidates'] = cands
-        if output.scores is not None:
-            for i, score in zip(valid_inds, output.scores):
-                batch_reply[i]['scores'] = score
+        # if output.scores is not None:
+        #     for i, score in zip(valid_inds, output.scores):
+        #         batch_reply[i]['scores'] = score
         return batch_reply
 
     def score_candidates(self, batch, cand_vecs, cand_encs=None):
