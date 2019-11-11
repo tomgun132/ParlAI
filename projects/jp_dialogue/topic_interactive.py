@@ -8,7 +8,6 @@ from parlai.scripts.interactive import setup_args
 from parlai.core.agents import create_agent
 from parlai.core.worlds import create_task
 from parlai.core.torch_agent import Output
-from natto import MeCab
 from ja_sentpiece_tokenizer import FullTokenizer
 from rasa.nlu.model import Interpreter
 import random
@@ -37,10 +36,7 @@ def interactive(opt):
     opt['task'] = 'parlai.agents.local_human.local_human:LocalHumanAgent'
     agent = create_agent(opt, requireModelExists=True)
     world = create_task(opt, [agent])
-    if 'bert' in opt['model_file']:
-        tokenizer = FullTokenizer(opt['datapath'] + '/models/')
-    else:
-        tokenizer = MeCab('-Owakati')
+    tokenizer = FullTokenizer(opt['datapath'] + '/models/')
     nlu = None
     if opt['with_topic']:
         if 'json' not in opt['fixed_candidates_path']:
@@ -74,6 +70,7 @@ def interactive(opt):
         obs = {'text': text, 'episode_done': False}
         if topic is not None:
             obs['topic'] = topic
+            print(topic)
         agent.observe(obs)
 
         out = agent.act()
