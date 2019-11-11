@@ -10,6 +10,7 @@ from parlai.core.worlds import create_task
 from parlai.core.torch_agent import Output
 from natto import MeCab
 from ja_sentpiece_tokenizer import FullTokenizer
+from rasa.nlu.model import Interpreter
 import random
 import os
 import time
@@ -40,6 +41,12 @@ def interactive(opt):
         tokenizer = FullTokenizer(opt['datapath'] + '/models/')
     else:
         tokenizer = MeCab('-Owakati')
+    nlu = None
+    if opt['with_topic']:
+        if 'json' not in opt['fixed_candidates_path']:
+            raise AttributeError("With topic option must use topical candidates file")
+        nlu = Interpreter.load(opt['datapath'] + '/rachel/topic_model')
+
     not_quit = True
     i = 0
     chosen = random.sample(characters, k=4)
@@ -54,15 +61,21 @@ def interactive(opt):
         #     print(text)
         if text == 'quit':
             return "また会いましょう。"
-        
+
         start = time.time()
         if len(history) > opt.get('hist_size'):
             del history[0]
+        topic = None
+        if nlu is not None:
+            parsed = nlu.parse(text)
+            topic = parsed['intent']['name']
         text = tokenizer.parse(text)
         print(text)
         obs = {'text': text, 'episode_done': False}
+        if topic is not None:
+            obs['topic'] = topic
         agent.observe(obs)
-        
+
         out = agent.act()
         if 'bert' in opt['model_file']:
             resp_cands = out['text_candidates']
@@ -87,6 +100,12 @@ if __name__ == '__main__':
         '--hist-size',
         type=int,
         default=3,
+        help='number of conversation history to remember'
+    )
+    parser.add_argument(
+        '--with-topic',
+        type=bool,
+        default=False,
         help='number of conversation history to remember'
     )
     parser.set_params(batchsize=1, beam_size=20, beam_min_n_best=10)
