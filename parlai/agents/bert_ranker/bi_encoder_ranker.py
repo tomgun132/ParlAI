@@ -37,7 +37,7 @@ class BiEncoderRankerAgent(TorchRankerAgent):
 
     def __init__(self, opt, shared=None):
         # download pretrained models
-        download(opt['datapath'])
+        # download(opt['datapath'])
         self.pretrained_path = os.path.join(
             opt['datapath'], 'models', 'bert_models', MODEL_PATH
         )
@@ -275,5 +275,6 @@ def to_bert_input(token_idx, null_idx):
     segment_idx = token_idx * 0
     mask = token_idx != null_idx
     # nullify elements in case self.NULL_IDX was not 0
-    token_idx = token_idx * mask.long()
+    mask = mask.long()
+    token_idx = token_idx * mask
     return token_idx, segment_idx, mask

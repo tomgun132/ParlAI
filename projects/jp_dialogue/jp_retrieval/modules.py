@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from parlai.agents.transformer.modules import TransformerEncoder, BasicAttention
-from parlai.core.utils import neginf
+from parlai.utils.misc import neginf
 from parlai.agents.bert_ranker.helpers import (
     get_bert_optimizer,
     BertWrapper,
