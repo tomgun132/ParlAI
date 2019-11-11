@@ -1,6 +1,6 @@
 import copy
 from .build import build, make_path
-from parlai.core.utils import warn_once, str_to_msg
+from parlai.utils.misc import warn_once, str_to_msg
 from parlai.core.teachers import ParlAIDialogTeacher
 
 
