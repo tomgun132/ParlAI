@@ -12,7 +12,7 @@ from parlai.agents.bert_ranker.bi_encoder_ranker import BiEncoderRankerAgent, Bi
 from parlai.core.torch_ranker_agent import TorchRankerAgent
 from parlai.core.torch_agent import Output
 
-from parlai.core.utils import (
+from parlai.utils.misc import (
     AttrDict,
     argsort,
     fp16_optimizer_wrapper,
@@ -27,6 +27,7 @@ from .utils import UniBiDictionaryAgent, Batch
 
 from tqdm import tqdm
 from itertools import islice
+from collections import namedtuple
 
 class PolyAIJPRanker(TorchRankerAgent):
 
@@ -808,6 +809,34 @@ class BertJPRanker(BiEncoderRankerAgent):
         elif self.model_type == 'poly':
             return PolyEncoderBert(self.opt)
 
+    def batchify(self, *args, **kwargs):
+        """Override batchify"""
+        kwargs['sort'] = True  # need sorted for pack_padded
+        batch = super().batchify(*args, **kwargs)
+
+        obs_batch = args[0]
+        sort = kwargs['sort']
+        is_valid = (
+            lambda obs: 'text_vec' in obs or 'image' in obs
+        )
+
+        if len(obs_batch) == 0:
+            return Batch()
+
+        valid_obs = [(i, ex) for i, ex in enumerate(obs_batch) if is_valid(ex)]
+
+        if len(valid_obs) == 0:
+            return Batch()
+
+        valid_inds, exs = zip(*valid_obs)
+
+        if any('topic' in ex for ex in exs):
+            topics = [ex.get('topic', None) for ex in exs]
+
+        new_batch = namedtuple('Batch', tuple(batch.keys()) + tuple(['topics']))
+        batch = new_batch(topics=topics, **dict(batch))
+        return batch
+
     def eval_step(self, batch):
         """Evaluate a single batch of examples."""
         if batch.text_vec is None and batch.image is None:
@@ -832,6 +861,20 @@ class BertJPRanker(BiEncoderRankerAgent):
             elif self.eval_candidates == 'vocab':
                 cand_encs = self.vocab_candidate_encs
 
+        """
+        If we group responses based on the topic
+        """
+        if type(cand_vecs) == dict:
+            # raise NotImplementedError("Currently, interactive with topic cannot be called from act() function")
+            if batch.topics is None:
+                raise AttributeError("Topic must exist in the batch if the fixed candidates come from json file")
+            topic = batch.topics[0] # This is assuming interactive mode where batch_size == 1
+            if topic is not None:
+                cands = cands[topic]
+                cand_vecs = cand_vecs[topic]
+                cand_encs = cand_encs[topic]
+            else:
+                raise AttributeError("Topic must exist in the batch if the fixed candidates come from json file")
         scores = self.score_candidates(batch, cand_vecs, cand_encs=cand_encs)
 
         if self.rank_top_k > 0:
@@ -960,3 +1003,173 @@ class BertJPRanker(BiEncoderRankerAgent):
 
         # otherwise: cand_vecs should be 2D float vector ncands x embed_size
         return embedding_ctxt.mm(cand_vecs.t())
+
+    def _build_candidates(self, batch, source, mode):
+        label_vecs = batch.label_vec
+        if type(self.fixed_candidate_vecs) == dict and label_vecs is not None:
+            raise TypeError("Fixed candidate with topic can only be done in eval step without label")
+
+        return super()._build_candidates(batch, source, mode)
+
+    def set_fixed_candidates(self, shared):
+        """
+        Load a set of fixed candidates and their vectors (or vectorize them here).
+
+        self.fixed_candidates will contain a [num_cands] list of strings
+        self.fixed_candidate_vecs will contain a [num_cands, seq_len] LongTensor
+
+        See the note on the --fixed-candidate-vecs flag for an explanation of the
+        'reuse', 'replace', or path options.
+
+        Note: TorchRankerAgent by default converts candidates to vectors by vectorizing
+        in the common sense (i.e., replacing each token with its index in the
+        dictionary). If a child model wants to additionally perform encoding, it can
+        overwrite the vectorize_fixed_candidates() method to produce encoded vectors
+        instead of just vectorized ones.
+        """
+        if shared:
+            self.fixed_candidates = shared['fixed_candidates']
+            self.fixed_candidate_vecs = shared['fixed_candidate_vecs']
+            self.fixed_candidate_encs = shared['fixed_candidate_encs']
+        else:
+            opt = self.opt
+            cand_path = self.fixed_candidates_path
+            if 'fixed' in (self.candidates, self.eval_candidates):
+                if not cand_path:
+                    # Attempt to get a standard candidate set for the given task
+                    path = self.get_task_candidates_path()
+                    if path:
+                        print("[setting fixed_candidates path to: " + path + " ]")
+                        self.fixed_candidates_path = path
+                        cand_path = self.fixed_candidates_path
+                # Load candidates
+                print("[ Loading fixed candidate set from {} ]".format(cand_path))
+                is_topical = False
+                with open(cand_path, 'r', encoding='utf-8') as f:
+                    if 'json' in cand_path:
+                        cands = json.load(f)
+                        is_topical = True
+                    else:
+                        cands = [line.strip() for line in f.readlines()]
+                # Load or create candidate vectors
+                if os.path.isfile(self.opt['fixed_candidate_vecs']):
+                    vecs_path = opt['fixed_candidate_vecs']
+                    vecs = self.load_candidates(vecs_path)
+                else:
+                    setting = self.opt['fixed_candidate_vecs']
+                    model_dir, model_file = os.path.split(self.opt['model_file'])
+                    model_name = os.path.splitext(model_file)[0]
+                    cands_name = os.path.splitext(os.path.basename(cand_path))[0]
+                    vecs_path = os.path.join(
+                        model_dir, '.'.join([model_name, cands_name, 'vecs'])
+                    )
+                    if setting == 'reuse' and os.path.isfile(vecs_path):
+                        vecs = self.load_candidates(vecs_path)
+                    else:  # setting == 'replace' OR generating for the first time
+                        vecs = self._make_candidate_vecs(cands)
+                        self._save_candidates(vecs, vecs_path)
+
+                self.fixed_candidates = cands
+                self.fixed_candidate_vecs = vecs
+                if self.use_cuda:
+                    if is_topical:
+                        for topic, vec in self.fixed_candidate_vecs.items():
+                            self.fixed_candidate_vecs[topic] = vec.cuda()
+                    else:
+                        self.fixed_candidate_vecs = self.fixed_candidate_vecs.cuda()
+
+                if self.encode_candidate_vecs:
+                    # candidate encodings are fixed so set them up now
+                    enc_path = os.path.join(
+                        model_dir, '.'.join([model_name, cands_name, 'encs'])
+                    )
+                    if setting == 'reuse' and os.path.isfile(enc_path):
+                        encs = self.load_candidates(enc_path, cand_type='encodings')
+                    else:
+                        encs = self._make_candidate_encs(self.fixed_candidate_vecs)
+                        self._save_candidates(
+                            encs, path=enc_path, cand_type='encodings'
+                        )
+                    self.fixed_candidate_encs = encs
+                    if self.use_cuda:
+                        if is_topical:
+                            for topic, enc in self.fixed_candidate_encs.items():
+                                self.fixed_candidate_encs[topic] = enc.cuda()
+                        else:
+                            self.fixed_candidate_encs = self.fixed_candidate_encs.cuda()
+                    if self.fp16:
+                        if is_topical:
+                            for topic, enc in self.fixed_candidate_encs.items():
+                                self.fixed_candidate_encs[topic] = enc.half()
+                        else:
+                            self.fixed_candidate_encs = self.fixed_candidate_encs.half()
+                    else:
+                        if is_topical:
+                            for topic, enc in self.fixed_candidate_encs.items():
+                                self.fixed_candidate_encs[topic] = enc.float()
+                        else:
+                            self.fixed_candidate_encs = self.fixed_candidate_encs.float()
+                else:
+                    self.fixed_candidate_encs = None
+
+            else:
+                self.fixed_candidates = None
+                self.fixed_candidate_vecs = None
+                self.fixed_candidate_encs = None
+
+    def _make_candidate_vecs(self, cands):
+        """Prebuild cached vectors for fixed candidates."""
+        if isinstance(cands, dict):
+            vec_dict = dict()
+            for topic, cand_list in cands.items():
+                vecs = self.vectorize_fixed_candidates(cand_list)
+                vec_dict[topic] = padded_3d([vecs], dtype=vecs[0].dtype).squeeze(0)
+            return vec_dict
+        else:
+            cand_batches = [cands[i : i + 512] for i in range(0, len(cands), 512)]
+            print(
+                "[ Vectorizing fixed candidate set ({} batch(es) of up to 512) ]"
+                "".format(len(cand_batches))
+            )
+            cand_vecs = []
+            for batch in tqdm(cand_batches):
+                cand_vecs.extend(self.vectorize_fixed_candidates(batch))
+            return padded_3d([cand_vecs], dtype=cand_vecs[0].dtype).squeeze(0)
+
+    def _make_candidate_encs(self, vecs):
+        """
+        Encode candidates from candidate vectors.
+
+        Requires encode_candidates() to be implemented.
+        """
+        if isinstance(vecs, dict):
+            encs_dict = {}
+            for topic, cand_vec in vecs.items():
+                cand_encs = []
+                vec_batches = [cand_vec[i : i + 256] for i in range(0, len(cand_vec), 256)]
+                print(
+                    "[ Encoding fixed candidates set from ({} batch(es) of up to 256) ]"
+                    "".format(len(vec_batches))
+                )
+                # Put model into eval mode when encoding candidates
+                self.model.eval()
+                with torch.no_grad():
+                    for vec_batch in tqdm(vec_batches):
+                        cand_encs.append(self.encode_candidates(vec_batch))
+
+                encs_dict[topic] = torch.cat(cand_encs, 0)
+
+            return encs_dict
+        else:
+            cand_encs = []
+            vec_batches = [vecs[i : i + 256] for i in range(0, len(vecs), 256)]
+            print(
+                "[ Encoding fixed candidates set from ({} batch(es) of up to 256) ]"
+                "".format(len(vec_batches))
+            )
+            # Put model into eval mode when encoding candidates
+            self.model.eval()
+            with torch.no_grad():
+                for vec_batch in tqdm(vec_batches):
+                    cand_encs.append(self.encode_candidates(vec_batch))
+            return torch.cat(cand_encs, 0)
