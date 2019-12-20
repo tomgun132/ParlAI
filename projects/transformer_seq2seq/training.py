@@ -36,7 +36,7 @@ def setup_args():
         embeddings_scale=False,
         n_segments=2,
         # validation_every_n_secs=300,
-        validation_every_epochs=0.5,
+        validation_every_epochs=0.1,
         validation_metric='ppl',
         validation_metric_mode='min',
         validation_patience=12,
@@ -75,4 +75,6 @@ if __name__ == '__main__':
     --n-heads 12 --ffn-size 3072 --attention-dropout 0.1 --relu-dropout 0.0 --dropout 0.1 --n-positions 1024 
     --embedding-size 768 --activation gelu --embeddings-scale False --n-segments 2 --share-word-embeddings False 
     --dict-endtoken __start__ --inference beam --beam-size 3 -mf \research\ParlAI_seq2seq\data\models\conv_seq2seq\model
+
+     python training.py --init-model zoo:pretrained_transformers/bi_model_huge_reddit/model --dict-file /home/ubuntu/research/ParlAI/data/models/pretrained_transformers/bi_model_huge_reddit/model.dict -pyt convai2,dailydialog,empathetic_dialogues,wizard_of_wikipedia --shuffle true -mf /home/ubuntu/research/ParlAI/data/models/test_model/base_mtask_model --embedding_size 768 -bs 16 -tr 128
     """
