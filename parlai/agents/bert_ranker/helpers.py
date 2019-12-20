@@ -25,12 +25,8 @@ except ImportError:
 
 
 import torch
-<<<<<<< HEAD
-from torch.optim.optimizer import Optimizer
-=======
 from torch.optim import Optimizer, AdamW
 from torch.optim.optimizer import required
->>>>>>> edited bert ranker to work on japanese bert
 from torch.nn.utils import clip_grad_norm_
 
 
@@ -139,15 +135,8 @@ class BertWrapper(torch.nn.Module):
         self.bert_model = bert_model
 
     def forward(self, token_ids, segment_ids, attention_mask):
-<<<<<<< HEAD
-        """
-        Forward pass.
-        """
-        output_bert, output_pooler = self.bert_model(
-=======
         """Forward pass."""
         outputs = self.bert_model(
->>>>>>> edited bert ranker to work on japanese bert
             token_ids, segment_ids, attention_mask
         )
         _, output_pooler = outputs[:2]
