@@ -35,7 +35,7 @@ def setup_args():
         activation='gelu',
         embeddings_scale=False,
         n_segments=2,
-        # validation_every_n_secs=300,
+        validation_every_n_secs=3600,
         validation_every_epochs=0.1,
         validation_metric='ppl',
         validation_metric_mode='min',
