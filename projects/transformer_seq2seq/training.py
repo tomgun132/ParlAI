@@ -10,7 +10,7 @@ def setup_args():
         dict_lower=True,
         dict_tokenizer='bpe',
         batchsize=64,
-        embeddingsize=768,
+        embedding_size=768,
         learningrate=5e-4,
         warmup_updates=100,
         lr_scheduler_patience=0,
