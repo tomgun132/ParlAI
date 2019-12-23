@@ -41,7 +41,7 @@ def setup_args():
         validation_metric_mode='min',
         validation_patience=12,
         log_every_n_secs=20,
-        load_from_checkpoint=False,
+        load_from_checkpoint=True,
         save_after_valid = True,
         tensorboard_log=True,
         tensorboard_tag='task,batchsize,hiddensize,embeddingsize,attention,numlayers,rnn_class,learningrate,dropout,gradient_clip',
