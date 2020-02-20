@@ -1066,7 +1066,6 @@ task_list = [
         ),
     },
     {
-<<<<<<< HEAD
         "id": "IGC",
         "display_name": "Image Grounded Conversations",
         "task": "igc",
@@ -1075,7 +1074,9 @@ task_list = [
             "A dataset of (image, context, question, answer) tuples, comprised "
             "of eventful images taken from Bing, Flickr, and COCO. See "
             "https://arxiv.org/abs/1701.08251 for more information."
-=======
+        ),
+    },
+    {
         "id": "TopicalChat",
         "display_name": "AlexaTopicalChat",
         "task": "topicalchat",
@@ -1085,7 +1086,6 @@ task_list = [
             "Each dialog contains at least 20 utterances, which mostly refer to knowledge sources. "
             "Different from Wizard of Wikipedia, there is no wizard/apprentice roles here "
             "from Gopalakrishnan et al., '19. Link: https://github.com/alexa/alexa-prize-topical-chat-dataset"
->>>>>>> added alexachat dataset to task
         ),
     },
 ]
